@@ -15,6 +15,8 @@ import {
   type FloatingButtonRect,
 } from '../floatingButtonLayout';
 
+const DRAG_MIN_DISTANCE = 10;
+
 const POSITION_SPRING = {
   mass: 1,
   damping: 15,
@@ -27,6 +29,8 @@ interface FloatingAIButtonPanActions {
   readonly setHorizontalDirection: (direction: MenuDirection) => void;
   readonly setVerticalDirection: (direction: MenuDirection) => void;
   readonly cancelAffordances: () => void;
+  /** Called when pan gesture begins to signal that long-press should be suppressed. */
+  readonly setPanBeganDuringPress: (began: boolean) => void;
 }
 
 export function useFloatingAIButtonPanGesture(
@@ -53,10 +57,12 @@ export function useFloatingAIButtonPanGesture(
   }, [otherRect]);
 
   return Gesture.Pan()
+    .minDistance(DRAG_MIN_DISTANCE)
     .onBegin(() => {
       dragActive.value = true;
       runOnJS(markPositionInteractionStarted)();
       runOnJS(actions.cancelAffordances)();
+      runOnJS(actions.setPanBeganDuringPress)(true);
     })
     .onStart(() => {
       runOnJS(actions.closeMenu)();
@@ -96,6 +102,7 @@ export function useFloatingAIButtonPanGesture(
     })
     .onFinalize((_event, successful) => {
       dragActive.value = false;
+      runOnJS(actions.setPanBeganDuringPress)(false);
       if (successful) return;
 
       const savedPosition = {

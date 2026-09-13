@@ -100,36 +100,185 @@ jest.mock('expo-crypto', () => ({
 }));
 
 jest.mock('expo-blur', () => {
-  const { View } = require('react-native');
+  const { View } = jest.requireActual('react-native');
   return {
     BlurView: View
   };
 });
 
-// Minimal reanimated stub — official mock pulls in TS source that the
-// jest transform pipeline can't load. We only need the surface area used
-// by neumorphic primitives (useSharedValue, useAnimatedStyle, withSpring,
-// Animated.View).
-jest.mock('react-native-reanimated', () => {
-   
-  const View = require('react-native').View;
+// Provide a minimal react-native stub that satisfies the export surface needed by
+// the component, @testing-library/react-native, and every library in the Jest chain.
+// AccessibilityInfo.isReduceMotionEnabled returns a resolved Promise so
+// reduceMotionResolved becomes true during the first render and the useEffect hook
+// (which guards the hold-animation start) runs without returning early.
+jest.mock('react-native', () => {
+  const React = require('react');
+  const View = (props: object & { children?: React.ReactNode }) =>
+    React.createElement('View', props, props?.children);
+  View.displayName = 'View';
   return {
-    __esModule: true,
-    default: { View, createAnimatedComponent: (c: unknown) => c },
+    AccessibilityInfo: {
+      isReduceMotionEnabled: () => Promise.resolve(false),
+      addEventListener: () => ({ remove: jest.fn() }),
+    },
+    StyleSheet: {
+      create: (styles: object) => styles,
+      flatten: (style: object) => style,
+    },
+    Platform: { OS: 'ios', select: (opts: object) => opts },
+    PixelRatio: { get: () => 2 },
+    Dimensions: { get: () => ({ width: 375, height: 812 }) },
+    Image: View,
+    Text: View,
+    TouchableOpacity: View,
+    Pressable: View,
+    ScrollView: View,
+    FlatList: View,
+    SectionList: View,
+    TextInput: View,
+    Switch: View,
+    ActivityIndicator: View,
+    RefreshControl: View,
+    Modal: View,
+    KeyboardAvoidingView: View,
     View,
-    useSharedValue: (initial: unknown) => ({ value: initial }),
-    useAnimatedStyle: (cb: () => Record<string, unknown>) => cb(),
-    useDerivedValue: (cb: () => unknown) => ({ value: cb() }),
-    withSpring: (v: unknown) => v,
-    withTiming: (v: unknown) => v,
-    withDelay: (_d: unknown, anim: unknown) => anim,
-    withSequence: (...anims: unknown[]) => anims[anims.length - 1],
-    withRepeat: (anim: unknown) => anim,
-    cancelAnimation: () => {},
-    runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
-    Easing: { linear: (v: unknown) => v, in: (v: unknown) => v, out: (v: unknown) => v, inOut: (v: unknown) => v },
+    useWindowDimensions: () => ({ width: 375, height: 812, scale: 2, fontScale: 1 }),
   };
 });
+
+// Shared animation state — module-level so the factory closure AND
+// global.MockReanimated both reference the same objects.
+type MockSV = Record<string, unknown>;
+const mockAnimState: {
+  pending: Map<MockSV, { startTime: number; from: number; to: number; duration: number; easing: (t: number) => number }>;
+  all: Set<MockSV>;
+  now: number;
+  EPS: number;
+  linearEase: (t: number) => number;
+  tick: (deltaMs: number) => void;
+} = {
+  pending: new Map(),
+  all: new Set(),
+  now: 0,
+  EPS: 1e-6,
+  linearEase(t: number): number { return t; },
+  tick(deltaMs: number): void {
+    this.now += deltaMs;
+    for (const sv of this.all) {
+      const p = this.pending.get(sv);
+      if (!p) continue;
+      const elapsed = this.now - p.startTime;
+      const t = Math.min(elapsed / p.duration, 1);
+      const eased = p.easing(t);
+      sv.value = p.from + (p.to - p.from) * eased;
+      if (t >= 1 - this.EPS) { sv.value = p.to; this.pending.delete(sv); }
+    }
+  },
+};
+
+jest.mock('react-native-reanimated', () => {
+  const RealView = require('react-native').View;
+  const S = mockAnimState;
+
+  function useSharedValue(initial: number) {
+    let _v = initial;
+    const sv: Record<string, unknown> = {};
+    Object.defineProperty(sv, 'value', {
+      get() { return _v; },
+      set(newVal) {
+        if (newVal != null && typeof newVal === 'object' && '__anim' in newVal) {
+          const anim = (newVal as { __anim: { startTime: number; from: number; to: number; duration: number; easing: (t: number) => number } }).__anim;
+          S.pending.set(sv, anim);
+          _v = anim.from;
+        } else {
+          _v = newVal as number;
+        }
+      },
+      enumerable: true,
+      configurable: true,
+    });
+    sv.value = initial;
+    S.all.add(sv);
+    return sv as unknown as { value: number };
+  }
+
+  function withSpring(v: number): number { return v; }
+
+  function withTiming(to: number, opts?: { duration?: number; easing?: (t: number) => number } | number) {
+    const options = opts ?? {};
+    const duration = typeof options === 'number' ? options : (options.duration ?? 0);
+    const easing = typeof options === 'number' ? S.linearEase : (options.easing ?? S.linearEase);
+    const anim = { __anim: { startTime: S.now, from: 0, to, duration, easing } };
+    return anim;
+  }
+
+  function withDelay(_d: unknown, anim: unknown): unknown { return anim; }
+  function withSequence(...anims: unknown[]): unknown { return anims[anims.length - 1] ?? anims[0]; }
+  function withRepeat(anim: unknown): unknown { return anim; }
+  function cancelAnimation(sv: Record<string, unknown>): void { S.pending.delete(sv); }
+  function runOnJS(fn: unknown): unknown { return fn; }
+  function interpolate(value: number, inputRange: number[], outputRange: number[], extrapolate: string = 'extend'): number {
+    const clamped = Math.max(inputRange[0], Math.min(inputRange[inputRange.length - 1], value));
+    let idx = 0;
+    for (let i = 0; i < inputRange.length - 1; i++) {
+      if (clamped >= inputRange[i] && clamped <= inputRange[i + 1]) { idx = i; break; }
+    }
+    const ratio = (inputRange[idx + 1] !== inputRange[idx])
+      ? (clamped - inputRange[idx]) / (inputRange[idx + 1] - inputRange[idx])
+      : 0;
+    let result = outputRange[idx] + ratio * (outputRange[idx + 1] - outputRange[idx]);
+    if (extrapolate === 'clamp') {
+      result = Math.max(outputRange[0], Math.min(outputRange[outputRange.length - 1], result));
+    }
+    return result;
+  }
+
+  return {
+    __esModule: true,
+    default: { View: RealView, createAnimatedComponent: (c: unknown) => c },
+    View: RealView,
+    useSharedValue,
+    useAnimatedStyle: (cb: () => Record<string, unknown>) => cb(),
+    useDerivedValue: (cb: () => number) => ({ value: cb() }),
+    withSpring,
+    withTiming,
+    withDelay,
+    withSequence,
+    withRepeat,
+    cancelAnimation,
+    runOnJS,
+    interpolate,
+    Easing: { linear: S.linearEase, in: (v: number) => v, out: (v: number) => v, inOut: (v: number) => v },
+    _mockAnimState: S,
+  };
+});
+
+(global as unknown as { MockReanimated: {
+  __advanceBy: (ms: number) => void;
+  __completeAll: () => void;
+  __cancelAll: () => void;
+  __resetTime: () => void;
+  __now: () => number;
+}}).MockReanimated = {
+  __advanceBy: (ms) => mockAnimState.tick(ms),
+  __completeAll: () => mockAnimState.tick(1e12),
+  __cancelAll: () => {
+    for (const sv of mockAnimState.all as Iterable<Record<string, unknown>>) {
+      if (typeof sv.value === 'number') sv.value = 0;
+      (mockAnimState.pending as Map<Record<string, unknown>, unknown>).delete(sv);
+    }
+    mockAnimState.now = 0;
+  },
+  __resetTime: () => {
+    for (const sv of mockAnimState.all as Iterable<Record<string, unknown>>) {
+      if (typeof sv.value === 'number') sv.value = 0;
+      (mockAnimState.pending as Map<Record<string, unknown>, unknown>).delete(sv);
+    }
+    mockAnimState.all.clear();
+    mockAnimState.now = 0;
+  },
+  __now: () => mockAnimState.now,
+};
 
 // expo-haptics: noop the native calls.
 jest.mock('expo-haptics', () => ({
