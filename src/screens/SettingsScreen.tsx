@@ -50,7 +50,7 @@ import { reposAffectedByRemovedHosts, buildProviderAccountCount, type RemovedHos
 import { useRepoStore } from '../stores/repoStore';
 import { importRepoAtAdd } from '../services/RepoImportService';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
+
 import { AccountStorage } from '../services/AccountStorage';
 import { generateSshKey, clearCredential } from '../services/git/engine/GitEngine';
 import { RepoAccessPreflightError } from '../services/git/repoAccessPreflight';
@@ -59,6 +59,10 @@ import { useFloatingGitButtonStore } from '../stores/floatingGitButtonStore';
 import { useProStore } from '../stores/proStore';
 import { promptProUpgrade } from '../utils/proAlerts';
 import { FREE_TIER_MAX_REPOS, FREE_TIER_MAX_ACCOUNTS } from '../services/TierLimits';
+import {
+  confirmUnverifiedWrite,
+  showTransientAccessConfirmation,
+} from './addRepoConfirmation';
 
 // Mirrors GitFsService's MAX_CLONE_RETRIES so a failing repo can't loop the outer flow.
 const MAX_OUTER_CLONE_RETRIES = 1;
@@ -67,16 +71,7 @@ const CLONE_CANCEL_GRACE_MS = 800;
 
 type ImportAtAddOutcome = 'imported' | 'cancelled' | 'failed';
 
-function confirmUnverifiedWrite(t: TFunction, onConfirm: () => void): void {
-  Alert.alert(
-    t('settings.writeAccessNotVerifiedTitle'),
-    t('settings.writeAccessNotVerifiedBody'),
-    [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('settings.addAnyway'), onPress: onConfirm },
-    ],
-  );
-}
+
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
@@ -180,6 +175,7 @@ export default function SettingsScreen() {
   const [sshKeyData, setSshKeyData] = useState<{ publicKey: string; privateKey: string } | null>(null);
   const [sshGenerating, setSshGenerating] = useState(false);
   const [hostUseSsh, setHostUseSsh] = useState<Record<string, boolean>>({});
+  const pendingConfirmationRef = useRef(false);
 
   const loadHostUseSsh = useCallback(async (hosts: Array<{ id: string }>) => {
     const results: Record<string, boolean> = {};
@@ -475,7 +471,7 @@ export default function SettingsScreen() {
         ? t('settings.templatesSyncDoneBody', { count: synced, path: templatesRepoPref.repoPath })
         : t('settings.templatesSyncDonePartial', { count: synced, failed }),
     );
-  }, [templatesRepoPref, t]);
+  }, [repositories, templatesRepoPref, t]);
 
   const handleSyncRepo = useCallback(async (repo: GitRepository) => {
     if (!GitHubService.isAuthenticated()) {
@@ -611,7 +607,7 @@ export default function SettingsScreen() {
   }, [accountSummaries]);
 
   const handleSelectRepo = useCallback(async (repo: GitHostRepository) => {
-    if (isAddingRepoPath !== null) return;
+    if (isAddingRepoPath !== null || pendingConfirmationRef.current) return;
     if (repositories.length >= FREE_TIER_MAX_REPOS && !isPro) {
       promptProUpgrade(t, openPaywall);
       return;
@@ -631,16 +627,22 @@ export default function SettingsScreen() {
         HapticService.success();
         await importRepoAfterAdd(repo.fullName, repo.name, repo.sizeKb);
       } catch (error) {
-        if (error instanceof RepoAccessPreflightError && error.canRetry && !allowUnverifiedWrite) {
-          confirmUnverifiedWrite(t, () => void attemptAdd(true));
+        if (error instanceof RepoAccessPreflightError) {
+          if (error.result.kind === 'transient' && error.canRetry && !allowUnverifiedWrite) {
+            showTransientAccessConfirmation(t, Alert.alert, pendingConfirmationRef, () => void attemptAdd(false));
+            return;
+          }
+          if (error.canRetry && !allowUnverifiedWrite) {
+            confirmUnverifiedWrite(t, () => void attemptAdd(true), Alert.alert, pendingConfirmationRef);
+            return;
+          }
+          console.warn('[SettingsScreen] handleSelectRepo failed:', error);
+          HapticService.error();
+          Alert.alert(t('settings.repositoryAccessTitle'), error.message);
           return;
         }
         console.warn('[SettingsScreen] handleSelectRepo failed:', error);
         HapticService.error();
-        if (error instanceof RepoAccessPreflightError) {
-          Alert.alert(t('settings.repositoryAccessTitle'), error.message);
-          return;
-        }
         Alert.alert(
           t('common.error'),
           error instanceof Error ? error.message : String(error),
@@ -650,10 +652,10 @@ export default function SettingsScreen() {
       }
     };
     await attemptAdd(false);
-  }, [addRepo, importRepoAfterAdd, repositories, t, isPro, openPaywall, isAddingRepoPath]);
+  }, [addRepo, importRepoAfterAdd, repositories, t, isPro, openPaywall, isAddingRepoPath, pendingConfirmationRef]);
 
   const handleAddManualRepo = useCallback(async () => {
-    if (isAddingRepoPath !== null) return;
+    if (isAddingRepoPath !== null || pendingConfirmationRef.current) return;
     const value = manualRepoInput.trim();
     if (!value) return;
     if (repositories.length >= FREE_TIER_MAX_REPOS && !isPro) {
@@ -672,16 +674,22 @@ export default function SettingsScreen() {
         HapticService.success();
         await importRepoAfterAdd(value, value);
       } catch (error) {
-        if (error instanceof RepoAccessPreflightError && error.canRetry && !allowUnverifiedWrite) {
-          confirmUnverifiedWrite(t, () => void attemptAdd(true));
+        if (error instanceof RepoAccessPreflightError) {
+          if (error.result.kind === 'transient' && error.canRetry && !allowUnverifiedWrite) {
+            showTransientAccessConfirmation(t, Alert.alert, pendingConfirmationRef, () => void attemptAdd(false));
+            return;
+          }
+          if (error.canRetry && !allowUnverifiedWrite) {
+            confirmUnverifiedWrite(t, () => void attemptAdd(true), Alert.alert, pendingConfirmationRef);
+            return;
+          }
+          console.warn('[SettingsScreen] handleAddManualRepo failed:', error);
+          HapticService.error();
+          Alert.alert(t('settings.repositoryAccessTitle'), error.message);
           return;
         }
         console.warn('[SettingsScreen] handleAddManualRepo failed:', error);
         HapticService.error();
-        if (error instanceof RepoAccessPreflightError) {
-          Alert.alert(t('settings.repositoryAccessTitle'), error.message);
-          return;
-        }
         Alert.alert(
           t('common.error'),
           error instanceof Error ? error.message : String(error),
@@ -691,7 +699,7 @@ export default function SettingsScreen() {
       }
     };
     await attemptAdd(false);
-  }, [addRepo, importRepoAfterAdd, manualRepoInput, t, repositories, isPro, openPaywall, isAddingRepoPath]);
+  }, [addRepo, importRepoAfterAdd, manualRepoInput, t, repositories, isPro, openPaywall, isAddingRepoPath, pendingConfirmationRef]);
 
   const handleRemoveRepo = useCallback((repo: GitRepository) => {
     HapticService.warning();
