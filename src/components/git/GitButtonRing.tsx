@@ -1,3 +1,16 @@
+/**
+ * GitButtonRing - Three-segment hold progress ring.
+ *
+ * Each segment uses Skia.Path with animated start/end to progressively
+ * fill the active segment's arc. Segment i (0,1,2) spans progress
+ * [i/3, (i+1)/3]. The active segment's end is interpolated from
+ * progress; completed segments are fully drawn.
+ *
+ * Geometry constants:
+ * - GIT_BUTTON_SIZE = 56
+ * - GIT_RING_RADIUS = 34 (56/2 + 6)
+ * - GIT_RING_STROKE_WIDTH = 3.5
+ */
 import { StyleSheet } from 'react-native';
 import { Canvas, Path, Skia } from '@shopify/react-native-skia';
 import {
@@ -18,11 +31,12 @@ interface GitButtonRingProps {
 
 const cx = GIT_RING_RADIUS + GIT_RING_STROKE_WIDTH + GIT_RING_PADDING;
 const cy = cx;
+const canvasSize = GIT_RING_RADIUS * 2 + GIT_RING_STROKE_WIDTH * 2 + GIT_RING_PADDING * 2;
+
+// Module-level base circle path (computed once)
 const basePath = Skia.Path.Circle(cx, cy, GIT_RING_RADIUS);
 
 export function GitButtonRing({ progress, colors }: GitButtonRingProps) {
-  const canvasSize = GIT_RING_RADIUS * 2 + GIT_RING_STROKE_WIDTH * 2 + GIT_RING_PADDING * 2;
-
   return (
     <Canvas
       pointerEvents="none"
