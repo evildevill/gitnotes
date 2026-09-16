@@ -5,7 +5,8 @@ import { useToast, Toast, ToastDescription, ToastTitle } from '@/components/ui/t
 import { useRepoStore } from '@/stores/repoStore';
 import { useAllReposStatus } from '@/hooks/useAllReposStatus';
 import { useGitButtonActionStore } from '@/stores/gitButtonActionStore';
-import { stageAllPending, commitAll, pushAll } from '@/services/git/multiRepoGitOps';
+import { stageAllPending, commitAll, pushAll, type RepoOpOutcome } from '@/services/git/multiRepoGitOps';
+import { CommitService } from '@/services/git/CommitService';
 import type { Author } from '@/services/git/engine/GitEngine';
 import { useAccounts } from '@/contexts/AccountsContext';
 import { emitGitContentRefresh, emitGitRefresh } from '@/hooks/useGitRefreshEvent';
@@ -105,7 +106,10 @@ export default function AppFloatingGitButton() {
           return;
         }
 
-        const message = `Sync: stage ${stageResult.totalActed} file(s)`;
+        const message = await CommitService.generateCommitMessage(
+          repos[0]?.id ?? '',
+          stageResult.totalActed,
+        );
         await commitAll(repos, message, author);
         if (segment === 'commit') {
           toast.show({
@@ -151,18 +155,41 @@ export default function AppFloatingGitButton() {
               >
                 <ToastTitle>
                   {pushFailedCount > 0
-                    ? `Pushed ${pushedCount} repos, ${pushFailedCount} had conflicts`
+                    ? `Pushed ${pushedCount} repos, ${pushFailedCount} failed`
                     : `Pushed to ${pushedCount} repos`}
                 </ToastTitle>
               </Toast>
             ),
           });
           const navigatedToConflicts = new Set<string>();
+          const nonConflictFailures: RepoOpOutcome[] = [];
           for (const failure of pushResult.failures) {
-            if (!navigatedToConflicts.has(failure.repoId)) {
-              navigatedToConflicts.add(failure.repoId);
-              navigation.navigate('ExploreConflict', { repoId: failure.repoId });
+            if (failure.failureKind === 'rejected') {
+              if (!navigatedToConflicts.has(failure.repoId)) {
+                navigatedToConflicts.add(failure.repoId);
+                navigation.navigate('ExploreConflict', { repoId: failure.repoId });
+              }
+            } else {
+              nonConflictFailures.push(failure);
             }
+          }
+          if (nonConflictFailures.length > 0) {
+            const kind = nonConflictFailures[0].failureKind ?? 'unknown';
+            const isAuthOrPermission = kind === 'auth' || kind === 'permission';
+            toast.show({
+              placement: 'top',
+              duration: 4000,
+              render: ({ id }: { id: string }) => (
+                <Toast action="error" nativeID={`gitbutton-push-nonauthr-${id}`}>
+                  <ToastTitle>{isAuthOrPermission ? 'Authentication required' : 'Push failed'}</ToastTitle>
+                  <ToastDescription>
+                    {isAuthOrPermission
+                      ? 'Check your credentials in Settings.'
+                      : nonConflictFailures.map((f) => f.repoName).join(', ')}
+                  </ToastDescription>
+                </Toast>
+              ),
+            });
           }
         }
         void aggregatedState.refresh();
