@@ -94,6 +94,24 @@ pub fn set_ssl_cert_file(cert_file: &Path) -> Result<(), AndroidCaError> {
     Ok(())
 }
 
+/// Configure git2's SSL certificate directory for Android.
+///
+/// This function must be called **once** from the Kotlin `OnCreate` lifecycle
+/// callback — before any engine operation (clone/fetch/push/pull) is dispatched.
+///
+/// # Safety
+///
+/// `git2::opts::set_ssl_cert_dir` writes to a **C global** inside libgit2's
+/// OpenSSL adapter. The global is process-local. Calling this concurrently
+/// from multiple threads while git ops are in-flight is undefined behaviour.
+/// The single call in `GitEngineModule.OnCreate` on the main thread, before
+/// any engine work is posted, satisfies the thread-safety requirement.
+///
+/// # Arguments
+///
+/// * `cert_dir` - Path to a directory containing PEM-encoded root CA
+///   certificates. On Android this is `/apex/com.android.conscrypt/cacerts`
+///   (or the legacy `/system/etc/security/cacerts`).
 pub fn set_ssl_cert_directory(cert_dir: &Path) -> Result<(), AndroidCaError> {
     if !cert_dir.is_dir() {
         return Err(AndroidCaError::NotReadable(std::io::Error::new(
@@ -106,6 +124,22 @@ pub fn set_ssl_cert_directory(cert_dir: &Path) -> Result<(), AndroidCaError> {
     // before any engine operations.
     unsafe {
         git2::opts::set_ssl_cert_dir(cert_dir.to_string_lossy().as_ref())?;
+    }
+    Ok(())
+}
+
+pub fn set_ssl_cert_locations(
+    cert_file: Option<&Path>,
+    cert_dir: Option<&Path>,
+) -> Result<(), AndroidCaError> {
+    // SAFETY: Single main-thread call before any engine operations.
+    unsafe {
+        if let Some(file) = cert_file {
+            git2::opts::set_ssl_cert_file(file)?;
+        }
+        if let Some(dir) = cert_dir {
+            git2::opts::set_ssl_cert_dir(dir)?;
+        }
     }
     Ok(())
 }

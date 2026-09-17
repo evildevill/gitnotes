@@ -20,12 +20,17 @@ class GitEngineModule : Module() {
     private const val CA_BUNDLE_FILENAME = "gitnotes_ca_bundle.pem"
   }
 
-  /// Configures git2's SSL certificate directory for Android using OpenSSL
-  /// directory mode. This avoids the file-mode OpenSSL issue (`no-stdio` builds)
-  /// by using hash-based CA lookup against the APEX CA directory directly.
   private fun configureAndroidCaBundle() {
-    val caDir = findAndroidCaDir() ?: return
-    setSslCertDirectory(caDir.absolutePath)
+    val caDir = findAndroidCaDir() ?: run {
+      android.util.Log.e("GitEngine", "configureAndroidCaBundle: no CA directory found")
+      return
+    }
+    val bundlePath = buildAndroidCaBundle() ?: run {
+      android.util.Log.e("GitEngine", "configureAndroidCaBundle: PEM bundle unavailable")
+      return
+    }
+    android.util.Log.i("GitEngine", "configureAndroidCaBundle: bundle=$bundlePath dir=${caDir.absolutePath}")
+    setSslCertLocations(bundlePath, caDir.absolutePath)
   }
 
   /// Returns the path to the CA bundle, building it if necessary.
