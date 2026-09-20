@@ -119,7 +119,10 @@ else
     (cd "$RUST_DIR" && cargo run --features uniffi-cli --bin uniffi-bindgen -- generate \
       --library "$DYLIB" --language kotlin --out-dir "$TMP_DIR/kotlin" --no-format)
     mkdir -p "$KOTLIN_GEN_DIR/uniffi/gitnotes_git2"
-    cp "$TMP_DIR/kotlin/uniffi/gitnotes_git2/gitnotes_git2.kt" "$KOTLIN_GEN_DIR/uniffi/gitnotes_git2/"
+    KOTLIN_BINDINGS="$KOTLIN_GEN_DIR/uniffi/gitnotes_git2/gitnotes_git2.kt"
+    cp "$TMP_DIR/kotlin/uniffi/gitnotes_git2/gitnotes_git2.kt" "$KOTLIN_BINDINGS"
+    python3 "$ROOT_DIR/scripts/fix-kotlin-uniffi-message.py" "$KOTLIN_BINDINGS"
+    python3 "$ROOT_DIR/scripts/fix-kotlin-uniffi-checksum.py" "$KOTLIN_BINDINGS"
   else
     log "Skipping Kotlin bindings (ANDROID_NDK_HOME not set or not found)"
   fi
