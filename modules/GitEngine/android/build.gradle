@@ -43,6 +43,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     jvmTarget = "17"
     allWarningsAsErrors = false
     freeCompilerArgs += [
+      '-Xjdk-release=17',
       '-Xjsr305=warn',
       '-Xno-param-assertions',
       '-Xno-call-assertions'
