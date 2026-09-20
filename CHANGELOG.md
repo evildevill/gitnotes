@@ -8,6 +8,14 @@ All notable fixes and feature changes to GitNotēs are documented here.
 >
 > **History**: prior fixes (pre-2026-08) lived in single-PR wiki pages. Those pages were retired in [#1047](https://github.com/gedwolmen/gitnotes/pull/1047); their full diagnostic content is preserved in git history via `git log -p -- docs/wiki/<file>.md`.
 
+## 2026-09-20
+
+### fix(android): build Rust library before local Android launch
+
+**What:** `yarn android` could launch an APK without `libgitnotes_git2.so`, causing Git operations to fail with a native-library `dlopen` error.
+
+**Fix:** The Android launcher now runs `yarn build:rust:android` before `expo run:android`, ensuring all ABI-specific Rust libraries are available to Gradle.
+
 ## 2026-09-19
 
 ### fix(android): unconditionally skip native SSL cert errors on Android

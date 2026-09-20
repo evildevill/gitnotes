@@ -377,7 +377,7 @@ Returns the engine name (`'git2'` when Rust module is active, `'stub'` when unav
 ./scripts/build-rust.sh --ios
 ```
 
-Outputs: `modules/GitEngine/target/aarch64-apple-ios/release/libgitnotes_git_engine.a` + `modules/GitEngine/target/aarch64-apple-ios-sim/release/libgitnotes_git_engine.a`
+Outputs: `modules/GitEngine/ios-local/rust/libgitnotes_git2.a` (simulator) + `modules/GitEngine/target/aarch64-apple-ios/release/libgitnotes_git2.a` (device)
 
 ### Android Build
 
@@ -385,7 +385,15 @@ Outputs: `modules/GitEngine/target/aarch64-apple-ios/release/libgitnotes_git_eng
 ./scripts/build-rust.sh --android
 ```
 
-Outputs: `modules/GitEngine/target/aarch64-linux-android/release/libgitnotes_git_engine.a`
+Outputs: `modules/GitEngine/android/src/main/jniLibs/<abi>/libgitnotes_git2.so`
+
+### Local Android Development
+
+`yarn android` builds the Rust Android libraries before running `expo run:android`.
+The libraries are copied into the ignored `modules/GitEngine/android/src/main/jniLibs/<abi>/`
+directories and packaged automatically by the GitEngine Android module. Run
+`yarn build:rust:android` directly when rebuilding the native libraries without
+launching the app.
 
 ## Expo Autolinking
 
