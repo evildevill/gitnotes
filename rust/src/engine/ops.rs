@@ -9,8 +9,8 @@ use std::path::Path;
 
 use git2::build::CheckoutBuilder;
 use git2::{
-    ApplyLocation, BranchType, Diff, DiffFindOptions, DiffOptions, Index, ObjectType, Oid,
-    Repository, Signature, Sort, Status, StatusOptions,
+    BranchType, Diff, DiffOptions, Index, ObjectType, Oid, Repository, Signature, Sort, Status,
+    StatusOptions,
 };
 
 use crate::api::types::{
@@ -122,31 +122,27 @@ pub fn diff_file(path: &Path, file_path: &str) -> Result<FileDiff> {
 
 /// Stage the given paths (add to the index). `git add`; also resolves any
 /// conflict entries for those paths.
-///
-/// Rename detection is enabled so that moving a file is tracked as a rename
-/// rather than a delete + add pair, preventing duplicate files on the remote.
 pub fn stage_paths(path: &Path, paths: &[String]) -> Result<()> {
     run_with_lock(path, || {
-        let repo = open_repo(path)?;
-        let head = repo.head()?;
-        let head_commit = head.peel_to_commit()?;
-        let head_tree = head_commit.tree()?;
-
-        let mut diff_opts = DiffOptions::new();
-        for p in paths {
-            diff_opts.pathspec(p);
+        if paths.is_empty() {
+            return Ok(());
         }
-        let mut diff =
-            repo.diff_tree_to_workdir_with_index(Some(&head_tree), Some(&mut diff_opts))?;
-
-        let mut find_opts = DiffFindOptions::new();
-        find_opts.renames(true);
-        diff.find_similar(Some(&mut find_opts))?;
-
-        repo.apply(&diff, ApplyLocation::Index, None)
-            .map_err(EngineError::Git)?;
-
-        Ok(())
+        let repo = open_repo(path)?;
+        let workdir = repo
+            .workdir()
+            .ok_or_else(|| EngineError::Invalid("Not a working directory".into()))?;
+        let mut index = repo.index()?;
+        for path in paths {
+            let file_path = Path::new(path);
+            if workdir.join(file_path).exists() {
+                index.add_path(file_path)?;
+            } else if let Err(error) = index.remove_path(file_path) {
+                if error.code() != git2::ErrorCode::NotFound {
+                    return Err(EngineError::Git(error));
+                }
+            }
+        }
+        index.write().map_err(EngineError::Git)
     })
 }
 
@@ -1474,6 +1470,44 @@ mod tests {
 
         let statuses = list_statuses(&dir).unwrap();
         assert!(statuses.iter().all(|s| s.path != "todos/a.json"));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn stage_paths_replaces_a_partial_index_without_patch_failure() {
+        let dir = scratch_repo("stage-all-after-partial");
+        commit_file(&dir, "README", "one\ntwo\nthree\n", "baseline");
+
+        fs::write(dir.join("README"), "one\nselected\nthree\n").unwrap();
+        let diff = diff_file(&dir, "README").unwrap();
+        let selected = diff
+            .lines
+            .iter()
+            .find(|line| {
+                matches!(line.origin, DiffLineOrigin::Addition)
+                    && line.content.contains("selected")
+            })
+            .unwrap();
+        stage_file_lines(
+            &dir,
+            "README",
+            &[HunkSelection {
+                line_indices: vec![selected.index],
+            }],
+        )
+        .unwrap();
+
+        fs::write(dir.join("README"), "one\nselected\nthree\nfinal\n").unwrap();
+        stage_paths(&dir, &["README".to_string()]).unwrap();
+
+        assert_eq!(
+            staged_blob_content(&dir, "README"),
+            "one\nselected\nthree\nfinal\n"
+        );
+        let statuses = list_statuses(&dir).unwrap();
+        assert_eq!(statuses.len(), 1);
+        assert!(statuses[0].staged);
+        assert!(statuses[0].workdir_status.is_empty());
         fs::remove_dir_all(&dir).ok();
     }
 
