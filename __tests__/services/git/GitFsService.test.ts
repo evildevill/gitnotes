@@ -1,13 +1,20 @@
 import { GitFsService } from '@/services/git/GitFsService';
 import * as GitEngine from '@/services/git/engine/GitEngine';
+import * as KeepAwake from 'expo-keep-awake';
 
 jest.mock('expo-file-system/legacy', () => ({
   documentDirectory: 'file:///documents/',
 }));
 
 jest.mock('@/services/git/engine/GitEngine', () => ({
+  clone: jest.fn(),
   fetch: jest.fn(),
   pull: jest.fn(),
+}));
+
+jest.mock('expo-keep-awake', () => ({
+  activateKeepAwakeAsync: jest.fn(),
+  deactivateKeepAwake: jest.fn(),
 }));
 
 jest.mock('@/services/git/gitFs', () => ({
@@ -15,8 +22,39 @@ jest.mock('@/services/git/gitFs', () => ({
 }));
 
 jest.mock('@/services/git/lfs', () => ({
-  LfsService: { scanRepo: jest.fn() },
+  LfsService: { scanRepo: jest.fn().mockResolvedValue(undefined) },
 }));
+
+describe('GitFsService.clone screen-awake lifecycle', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.mocked(KeepAwake.activateKeepAwakeAsync).mockResolvedValue(undefined);
+    jest.mocked(KeepAwake.deactivateKeepAwake).mockResolvedValue(undefined);
+  });
+
+  it('keeps the screen awake until a clone completes', async () => {
+    const clone = GitEngine.clone as jest.MockedFunction<typeof GitEngine.clone>;
+    clone.mockResolvedValue('');
+
+    await GitFsService.clone({ repoPath: 'owner/repo', branch: 'main' });
+
+    expect(KeepAwake.activateKeepAwakeAsync).toHaveBeenCalledWith(expect.any(String));
+    expect(KeepAwake.deactivateKeepAwake).toHaveBeenCalledWith(
+      jest.mocked(KeepAwake.activateKeepAwakeAsync).mock.calls[0][0],
+    );
+  });
+
+  it('releases the screen-awake lock when a clone fails', async () => {
+    const clone = GitEngine.clone as jest.MockedFunction<typeof GitEngine.clone>;
+    clone.mockRejectedValue(new Error('clone failed'));
+
+    await expect(GitFsService.clone({ repoPath: 'owner/repo', branch: 'main' })).rejects.toThrow('clone failed');
+
+    expect(KeepAwake.deactivateKeepAwake).toHaveBeenCalledWith(
+      jest.mocked(KeepAwake.activateKeepAwakeAsync).mock.calls[0][0],
+    );
+  });
+});
 
 describe('GitFsService.pullWithFastForward', () => {
   beforeEach(() => {
