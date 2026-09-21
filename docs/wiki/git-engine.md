@@ -411,14 +411,17 @@ Expo reads `modules/GitEngine/package.json` and links the native module automati
 
 ## Android Release Build (R8 / minification)
 
-Release builds on Android use R8 minification (enabled via `enableMinifyInReleaseBuilds: true` in `app.json` under `expo-build-properties`). The GitEngine module depends on JNA (declared as `net.java.dev.jna:jna:5.17.0@aar` in `modules/GitEngine/android/build.gradle`), and the UniFFI Kotlin bindings call into the native cdylib through JNA's `Pointer` class. R8 stripping the `Pointer` class or its `peer` field causes `GitEngine` native library to be unavailable at runtime with the error `Can't obtain peer field ID for class com.sun.jna.Pointer`. Additionally, R8 can strip JNA's `Native` class entirely, causing `Can't obtain static method dispose from class com.sun.jna.Native` at runtime. ProGuard/R8 keep rules for BOTH classes are required:
+Release builds on Android use R8 minification (enabled via `enableMinifyInReleaseBuilds: true` in `app.json` under `expo-build-properties`). The GitEngine module depends on JNA `5.18.0` (`net.java.dev.jna:jna:5.18.0@aar`), and the UniFFI Kotlin bindings use JNA direct mapping through `Native.register(...)`. R8 stripping JNA internals can make `GitEngine` unavailable at runtime, including errors such as `Can't obtain peer field ID for class com.sun.jna.Pointer` or `Can't obtain static method fromNative(Class, Object) from class com.sun.jna.Native`. The complete JNA Android keep rules are required:
 
 ```
--keep class com.sun.jna.Native { *; }
--keep class com.sun.jna.Pointer { protected long peer; }
+-dontwarn java.awt.**
+-dontwarn com.sun.jna.**
+-keep class com.sun.jna.** { *; }
+-keep class * extends com.sun.jna.** { *; }
+-keepclassmembers class * extends com.sun.jna.** { public *; }
 ```
 
-`-keepclassmembers` alone is insufficient because it does not retain the class itself.
+The rules are configured through `expo-build-properties.extraProguardRules` in `app.json`, so Expo prebuild regenerates them into `android/app/proguard-rules.pro`. Keeping the full JNA package also preserves the private reflection targets required by JNA's native initialization and the JNA types used by generated UniFFI bindings.
 
 ## Android CA Store Configuration
 
