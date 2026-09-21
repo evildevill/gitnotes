@@ -19,6 +19,10 @@ const TEMPLATE_PINS_STORAGE_KEY = '@gitnotes:template-pins';
 
 let migrationDone = false;
 
+function uniqueIds(ids: readonly string[]): string[] {
+  return [...new Set(ids)];
+}
+
 async function migrateFromBlob(): Promise<void> {
   if (migrationDone) return;
   migrationDone = true;
@@ -38,7 +42,7 @@ async function migrateFromBlob(): Promise<void> {
       JSON.stringify(n),
     ]);
     await AsyncStorage.multiSet(entries);
-    await AsyncStorage.setItem(NOTE_INDEX_KEY, JSON.stringify(notes.map((n) => n.id)));
+    await AsyncStorage.setItem(NOTE_INDEX_KEY, JSON.stringify(uniqueIds(notes.map((n) => n.id))));
     await AsyncStorage.removeItem(LEGACY_NOTES_KEY);
   } catch (e) {
     console.error('Note blob migration failed:', e);
@@ -103,7 +107,7 @@ export class StorageService {
     try {
       const indexRaw = await AsyncStorage.getItem(NOTE_INDEX_KEY);
       if (!indexRaw) return [];
-      const ids: string[] = JSON.parse(indexRaw);
+      const ids = uniqueIds(JSON.parse(indexRaw));
       if (ids.length === 0) return [];
 
       const result = await AsyncStorage.multiGet(ids.map(noteKey));
@@ -121,7 +125,7 @@ export class StorageService {
   }
 
   private static async saveNoteIndex(ids: string[]): Promise<void> {
-    await AsyncStorage.setItem(NOTE_INDEX_KEY, JSON.stringify(ids));
+    await AsyncStorage.setItem(NOTE_INDEX_KEY, JSON.stringify(uniqueIds(ids)));
   }
 
   static async saveAllNotes(notes: Note[]): Promise<void> {
