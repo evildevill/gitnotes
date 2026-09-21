@@ -260,7 +260,7 @@ async function ensureCredentialForOp(repoId: string | null | undefined): Promise
   if (!repoId || !GitEngineModule) return;
 
   const existing = await GitEngineModule!.getCredential(repoId);
-  if (existing) return;
+  if (existing?.kind === 'ssh') return;
 
   const stored = await CredentialStore.get(repoId);
   if (stored) {
