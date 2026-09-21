@@ -19,16 +19,37 @@ export interface HttpErrorDetails {
   headers?: Record<string, string>;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null ? value as Record<string, unknown> : undefined;
+}
+
 export function extractHttpErrorDetails(error: unknown): HttpErrorDetails {
-  if (typeof error === 'object' && error !== null) {
-    const e = error as Record<string, unknown>;
-    return {
-      message: typeof e.message === 'string' ? e.message : undefined,
-      status: typeof e.status === 'number' ? e.status : typeof e.statusCode === 'number' ? e.statusCode : undefined,
-      headers: typeof e.headers === 'object' && e.headers !== null ? e.headers as Record<string, string> : undefined,
-    };
-  }
-  return { message: String(error) };
+  const root = asRecord(error);
+  if (!root) return { message: String(error) };
+
+  const response = asRecord(root.response) ?? root;
+  const data = asRecord(response.data);
+  const message = typeof root.message === 'string'
+    ? root.message
+    : typeof data?.message === 'string'
+      ? data.message
+      : typeof response.message === 'string'
+        ? response.message
+        : undefined;
+  const status = typeof response.status === 'number'
+    ? response.status
+    : typeof response.statusCode === 'number'
+      ? response.statusCode
+      : typeof root.status === 'number'
+        ? root.status
+        : typeof root.statusCode === 'number'
+          ? root.statusCode
+          : undefined;
+  const headers = typeof response.headers === 'object' && response.headers !== null
+    ? response.headers as Record<string, string>
+    : undefined;
+
+  return { message, status, headers };
 }
 
 export function classifyGitHubSyncError(
