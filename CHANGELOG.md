@@ -10,6 +10,12 @@ All notable fixes and feature changes to GitNotēs are documented here.
 
 ## 2026-09-20
 
+### fix(android): preserve JNA direct mapping through R8
+
+**What:** Minified Android builds could fail during Git operations with `Can't obtain static method fromNative(Class, Object) from class com.sun.jna.Native`.
+
+**Fix:** Apply JNA's complete Android keep rules so direct-mapped UniFFI bindings and their JNA types remain available after R8 shrinking.
+
 ### fix(android): build Rust library before local Android launch
 
 **What:** `yarn android` could launch an APK without `libgitnotes_git2.so`, causing Git operations to fail with a native-library `dlopen` error.
