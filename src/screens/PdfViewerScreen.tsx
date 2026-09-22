@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -16,8 +15,8 @@ import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { HapticService } from '../utils/haptics';
-import { PositionMemoryService } from '../services/PositionMemoryService';
 import { SafeAreaView } from '../components/ui/SafeAreaView';
+import PdfViewer from '../components/PdfViewer';
 
 function encodeRepoPath(path: string): string {
   return path
@@ -40,12 +39,6 @@ export default function PdfViewerScreen() {
   const [inverted, setInverted] = useState(false);
   const cancelledRef = useRef(false);
   const downloadedUriRef = useRef<string | null>(null);
-  const memoryKey = PositionMemoryService.pdfKey(owner, repo, branch, path);
-  const [restoredY, setRestoredY] = useState<number | null>(null);
-  const lastYRef = useRef(0);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const webViewRef = useRef<WebView | null>(null);
-
   useEffect(() => {
     AsyncStorage.getItem(PDF_INVERT_STORAGE_KEY).then((v) => {
       if (v === '1') setInverted(true);
@@ -60,74 +53,6 @@ export default function PdfViewerScreen() {
       return next;
     });
   }, []);
-
-  useEffect(() => {
-    PositionMemoryService.load(memoryKey).then((y) => {
-      setRestoredY(y ?? 0);
-    });
-  }, [memoryKey]);
-
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      if (lastYRef.current > 0) {
-        PositionMemoryService.save(memoryKey, lastYRef.current);
-      }
-    };
-  }, [memoryKey]);
-
-  const handleMessage = (event: WebViewMessageEvent) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (typeof data?.scrollY === 'number') {
-        lastYRef.current = data.scrollY;
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = setTimeout(() => {
-          PositionMemoryService.save(memoryKey, lastYRef.current);
-        }, 400);
-      }
-    } catch (error) {
-      console.warn('PDF message parse error:', error);
-    }
-  };
-
-  const injectedJavaScript = restoredY != null ? `
-(function() {
-  var RESTORE_Y = ${restoredY};
-  var pending = null;
-  var restoreTimers = [];
-  function restore() {
-    try { window.scrollTo(0, RESTORE_Y); } catch (error) {}
-  }
-  function send() {
-    try {
-      var y = window.scrollY || document.documentElement.scrollTop || 0;
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ scrollY: y }));
-      }
-    } catch (error) {}
-  }
-  function onScroll() {
-    if (pending) return;
-    pending = setTimeout(function() { send(); pending = null; }, 350);
-  }
-  if (document.readyState === 'complete') restore();
-  else window.addEventListener('load', restore);
-  restoreTimers.push(setTimeout(restore, 250));
-  restoreTimers.push(setTimeout(restore, 800));
-  window.addEventListener('scroll', onScroll, { passive: true });
-
-  // #550: clear timers + listeners on pagehide so a stale JS context doesn't
-  // keep firing after the WebView unmounts.
-  window.addEventListener('pagehide', function() {
-    if (pending) { clearTimeout(pending); pending = null; }
-    for (var i = 0; i < restoreTimers.length; i++) clearTimeout(restoreTimers[i]);
-    restoreTimers = [];
-    window.removeEventListener('scroll', onScroll);
-  });
-  true;
-})();
-  ` : undefined;
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -191,14 +116,6 @@ export default function PdfViewerScreen() {
       if (uri) {
         downloadedUriRef.current = null;
         FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
-      }
-      // #550: stop any in-flight WebView load before navigation pops the
-      // screen. Without this, react-native-webview can leave the JS
-      // context spinning, leading to an unresponsive UI on return.
-      try {
-        webViewRef.current?.stopLoading?.();
-      } catch (error) {
-        console.warn('[PdfViewerScreen] stopLoading failed:', error);
       }
     };
   }, []);
@@ -265,24 +182,12 @@ export default function PdfViewerScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        // Wrapper acts as the blend stacking context for the invert overlay.
-        // WKWebView renders PDFs via PDFKit (a native view, not the DOM), so
-        // CSS injected into `document` never reaches the PDF pixels. Compose
-        // an inverted look by layering a white View on top with
-        // `mixBlendMode: 'difference'` — at the iOS / Android compositor
-        // level this produces |255 − pdf_pixel|, i.e. true colour inversion.
         <View style={{ flex: 1 }}>
-          <WebView
-            ref={webViewRef}
-            source={{ uri: localUri }}
+          <PdfViewer
+            uri={localUri}
+            token={authState.token}
             style={{ flex: 1, backgroundColor: colors.background }}
-            originWhitelist={['file://']}
-            allowsInlineMediaPlayback
-            allowFileAccess
-            allowFileAccessFromFileURLs={false}
-            allowUniversalAccessFromFileURLs={false}
-            injectedJavaScript={injectedJavaScript}
-            onMessage={handleMessage}
+            onError={setError}
           />
           {inverted ? (
             <View
