@@ -696,7 +696,7 @@
     "skipForNow": "Skip for Now",
     "pro": {
       "title": "GitNotēs Pro",
-      "body": "무료 플랜에는 계정 1개와 저장소 1개가 포함됩니다. GitNotēs Pro는 AI 채팅, 생각·음성 덤프, 맞춤 명언, 캔버스, 템플릿, 추가 저장소 및 계정을 30일 무료 체험과 함께 제공합니다.",
+      "body": "무료 플랜에는 계정 1개와 저장소 1개가 포함됩니다. GitNotēs Pro는 AI 채팅, 생각·음성 덤프, 맞춤 명언, 캔버스, 템플릿, 추가 저장소 및 계정을 제공합니다.",
       "reminder": "설정 → GitNotēs Pro에서 언제든 업그레이드할 수 있습니다."
     }
   },
@@ -1007,7 +1007,6 @@
       "multiAccount": "여러 GitHub 계정을 동시에 연동할 수 있습니다"
     },
     "monthly": {
-      "trialCta": "30일 무료 체험 후 {{price}}/월",
       "price": "{{price}}/월",
       "title": "월간"
     },
@@ -1023,18 +1022,16 @@
     "loading": "불러오는 중…",
     "later": "나중에",
     "retry": "다시 시도",
-    "termsNote": "구독은 취소할 때까지 자동 갱신됩니다. 구매를 복원하여 이 기기로 이전하세요. 신규 구독자에게는 30일 무료 체험이 제공됩니다.",
+    "termsNote": "구독은 취소할 때까지 자동 갱신됩니다. 구매를 복원하여 이 기기로 이전하세요.",
     "byok": {
       "title": "본인의 AI 키를 가져오세요",
       "body": "Pro에는 LLM 제공업체 크레딧이 포함되지 않습니다. AI 기능을 사용하려면 OpenAI, Anthropic 또는 호환 제공업체의 API 키를 직접 추가하세요."
     },
     "yearly": {
       "title": "연간",
-      "cta": "{{price}}/년",
-      "trialCta": "30일 무료 체험 후 {{price}}/년"
+      "cta": "{{price}}/년"
     },
     "action": {
-      "trial": "무료 체험 시작",
       "subscribe": "구독하기",
       "buy": "구매하기"
     },

@@ -696,7 +696,7 @@
     "skipForNow": "Skip for Now",
     "pro": {
       "title": "GitNotēs Pro",
-      "body": "Der kostenlose Plan umfasst 1 Konto und 1 Repository. GitNotēs Pro schaltet KI-Chat, Gedanken- und Sprach-Dump, personalisierte Zitate, Canvas, Vorlagen, weitere Repos und Konten frei — mit 30-tägiger kostenloser Testphase.",
+      "body": "Der kostenlose Plan umfasst 1 Konto und 1 Repository. GitNotēs Pro schaltet KI-Chat, Gedanken- und Sprach-Dump, personalisierte Zitate, Canvas, Vorlagen, weitere Repos und Konten frei.",
       "reminder": "Du kannst jederzeit in Einstellungen → GitNotēs Pro upgraden."
     }
   },
@@ -1007,7 +1007,6 @@
       "multiAccount": "Verbinden Sie mehrere GitHub-Konten nebeneinander"
     },
     "monthly": {
-      "trialCta": "30 Tage kostenlos testen, dann {{price}}/Monat",
       "price": "{{price}}/Monat",
       "title": "Monatlich"
     },
@@ -1023,18 +1022,16 @@
     "loading": "Wird geladen…",
     "later": "Vielleicht später",
     "retry": "Erneut versuchen",
-    "termsNote": "Abonnements verlängern sich automatisch bis zur Kündigung. Stelle Käufe wieder her, um sie auf dieses Gerät zu übertragen. Diese App bietet neuen Abonnenten eine 30-tägige kostenlose Testphase.",
+    "termsNote": "Abonnements verlängern sich automatisch bis zur Kündigung. Stelle Käufe wieder her, um sie auf dieses Gerät zu übertragen.",
     "byok": {
       "title": "Bring deine eigenen KI-Schlüssel mit",
       "body": "Pro enthält keine LLM-Anbieter-Guthaben. Um KI-Funktionen zu nutzen, füge deinen eigenen API-Schlüssel von OpenAI, Anthropic oder einem kompatiblen Anbieter hinzu."
     },
     "yearly": {
       "title": "Jährlich",
-      "cta": "{{price}}/Jahr",
-      "trialCta": "30 Tage kostenlos testen, dann {{price}}/Jahr"
+      "cta": "{{price}}/Jahr"
     },
     "action": {
-      "trial": "Kostenlose Testversion",
       "subscribe": "Abonnieren",
       "buy": "Jetzt kaufen"
     },
