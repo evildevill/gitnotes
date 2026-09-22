@@ -202,7 +202,7 @@ export default function OnboardingScreen({ onComplete, onSkip }: OnboardingScree
               className="mt-4"
             >
               <Text className="text-[13px] font-medium" style={{ color: colors.accent }}>
-                Configure API Key
+                Settings
               </Text>
             </TouchableOpacity>
           </View>
