@@ -696,7 +696,7 @@
     "skipForNow": "Skip for Now",
     "pro": {
       "title": "GitNotēs Pro",
-      "body": "Le plan gratuit inclut 1 compte et 1 dépôt. GitNotēs Pro débloque le chat IA, la décharge de pensées et vocale, les citations personnalisées, les toiles, les modèles, plus de dépôts et de comptes — avec un essai gratuit de 30 jours.",
+      "body": "Le plan gratuit inclut 1 compte et 1 dépôt. GitNotēs Pro débloque le chat IA, la décharge de pensées et vocale, les citations personnalisées, les toiles, les modèles, plus de dépôts et de comptes.",
       "reminder": "Vous pouvez passer à Pro à tout moment dans Réglages → GitNotēs Pro."
     }
   },
@@ -1007,7 +1007,6 @@
       "multiAccount": "Connectez plusieurs comptes GitHub côte à côte"
     },
     "monthly": {
-      "trialCta": "Essayez 30 jours gratuitement, puis {{price}}/mois",
       "price": "{{price}}/mois",
       "title": "Mensuel"
     },
@@ -1023,18 +1022,16 @@
     "loading": "Chargement…",
     "later": "Plus tard",
     "retry": "Réessayer",
-    "termsNote": "Les abonnements se renouvellent automatiquement jusqu'à annulation. Restaurez vos achats pour les transférer sur cet appareil. Cette app propose un essai gratuit de 30 jours aux nouveaux abonnés.",
+    "termsNote": "Les abonnements se renouvellent automatiquement jusqu'à annulation. Restaurez vos achats pour les transférer sur cet appareil.",
     "byok": {
       "title": "Apportez vos propres clés d'IA",
       "body": "Pro n'inclut pas de crédits de fournisseurs de LLM. Pour utiliser les fonctionnalités d'IA, ajoutez votre propre clé API d'OpenAI, d'Anthropic ou de tout fournisseur compatible."
     },
     "yearly": {
       "title": "Annuel",
-      "cta": "{{price}}/an",
-      "trialCta": "Essayez 30 jours gratuitement, puis {{price}}/an"
+      "cta": "{{price}}/an"
     },
     "action": {
-      "trial": "Essai gratuit",
       "subscribe": "S'abonner",
       "buy": "Acheter"
     },

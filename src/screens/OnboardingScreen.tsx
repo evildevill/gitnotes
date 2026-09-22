@@ -191,7 +191,7 @@ export default function OnboardingScreen({ onComplete, onSkip }: OnboardingScree
               {t('onboarding.pro.title', { defaultValue: 'GitNotēs Pro' })}
             </Text>
             <Text className="text-base text-center leading-6" style={{ color: colors.textSecondary }}>
-              {t('onboarding.pro.body', { defaultValue: 'The free plan includes 1 account and 1 repo. GitNotēs Pro unlocks AI chat, thought & voice dump, personalized quotes, canvases, templates, more repos and accounts — with a 14-day free trial.' })}
+              {t('onboarding.pro.body', { defaultValue: 'The free plan includes 1 account and 1 repo. GitNotēs Pro unlocks AI chat, thought & voice dump, personalized quotes, canvases, templates, more repos and accounts.' })}
             </Text>
             <Text className="text-[13px] text-center leading-[18px] mt-2 opacity-80" style={{ color: colors.textSecondary }}>
               {t('onboarding.pro.reminder', { defaultValue: 'You can upgrade anytime in Settings → GitNotēs Pro.' })}
@@ -202,7 +202,7 @@ export default function OnboardingScreen({ onComplete, onSkip }: OnboardingScree
               className="mt-4"
             >
               <Text className="text-[13px] font-medium" style={{ color: colors.accent }}>
-                Configure API Key
+                Settings
               </Text>
             </TouchableOpacity>
           </View>

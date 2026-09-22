@@ -654,7 +654,7 @@
     "skipForNow": "Skip for Now",
     "pro": {
       "title": "GitNotēs Pro",
-      "body": "The free plan includes 1 account and 1 repo. GitNotēs Pro unlocks AI chat, thought & voice dump, personalized quotes, canvases, templates, more repos and accounts — with a 14-day free trial.",
+      "body": "The free plan includes 1 account and 1 repo. GitNotēs Pro unlocks AI chat, thought & voice dump, personalized quotes, canvases, templates, more repos and accounts.",
       "reminder": "You can upgrade anytime in Settings → GitNotēs Pro."
     }
   },
@@ -1008,7 +1008,6 @@
       "multiAccount": "Connect multiple GitHub accounts side by side"
     },
     "monthly": {
-      "trialCta": "Try 14 days free, then {{price}}/month",
       "price": "{{price}}/month",
       "title": "Monthly"
     },
@@ -1024,18 +1023,16 @@
     "loading": "Loading…",
     "later": "Maybe later",
     "retry": "Retry",
-    "termsNote": "Subscriptions renew automatically until cancelled. Restore purchases to transfer them to this device. This app offers a 14-day free trial for new subscribers.",
+    "termsNote": "Subscriptions renew automatically until cancelled. Restore purchases to transfer them to this device.",
     "byok": {
       "title": "Bring your own AI keys",
       "body": "Pro does not include LLM provider credits. To use AI features, add your own API key from OpenAI, Anthropic, or any compatible provider."
     },
     "yearly": {
       "title": "Yearly",
-      "cta": "{{price}}/year",
-      "trialCta": "Try 14 days free, then {{price}}/year"
+      "cta": "{{price}}/year"
     },
     "action": {
-      "trial": "Start Free Trial",
       "subscribe": "Subscribe",
       "buy": "Buy Once"
     },

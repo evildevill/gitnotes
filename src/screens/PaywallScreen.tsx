@@ -18,7 +18,7 @@ import PaywallFeatureGrid from '../components/paywall/PaywallFeatureGrid';
 import PaywallPlanGrid, { PlanTileData } from '../components/paywall/PaywallPlanGrid';
 import { useTheme } from '../contexts/ThemeContext';
 import { useProStore } from '../stores/proStore';
-import { getIntroEligibilities, trackPaywallImpression } from '../services/RevenueCatService';
+import { trackPaywallImpression } from '../services/RevenueCatService';
 import * as PaywallAnalytics from '../services/PaywallAnalytics';
 import { LEGAL_URLS } from '../utils/constants';
 
@@ -44,7 +44,6 @@ export default function PaywallScreen() {
   const purchaseLifetime = useProStore((s) => s.purchaseLifetime);
   const restore = useProStore((s) => s.restore);
 
-  const [introEligible, setIntroEligible] = useState<Record<string, boolean>>({});
   const [restoreNotice, setRestoreNotice] = useState<'nothing' | null>(null);
   const openedAtRef = useRef(Date.now());
 
@@ -70,29 +69,6 @@ export default function PaywallScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const monthlyProductId = monthlyPackage?.product.identifier;
-  const yearlyProductId = yearlyPackage?.product.identifier;
-  useEffect(() => {
-    const ids = [monthlyProductId, yearlyProductId].filter(
-      (id): id is string => typeof id === 'string',
-    );
-    if (ids.length === 0) return;
-    let cancelled = false;
-    getIntroEligibilities(ids)
-      .then((result) => {
-        if (!cancelled) setIntroEligible(result);
-      })
-      .catch(() => {
-        if (!cancelled) setIntroEligible({});
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [monthlyProductId, yearlyProductId]);
-
-  const monthlyTrialEligible = monthlyProductId ? introEligible[monthlyProductId] === true : false;
-  const yearlyTrialEligible = yearlyProductId ? introEligible[yearlyProductId] === true : false;
 
   const monthlyPrice = monthlyPackage?.product.priceString;
   const yearlyPrice = yearlyPackage?.product.priceString;
@@ -142,12 +118,8 @@ export default function PaywallScreen() {
     {
       id: 'monthly',
       title: t('paywall.monthly.title'),
-      priceLine: monthlyPrice
-        ? monthlyTrialEligible
-          ? t('paywall.monthly.trialCta', { price: monthlyPrice })
-          : t('paywall.monthly.price', { price: monthlyPrice })
-        : null,
-      ctaLabel: monthlyTrialEligible ? t('paywall.action.trial') : t('paywall.action.subscribe'),
+      priceLine: monthlyPrice ? t('paywall.monthly.price', { price: monthlyPrice }) : null,
+      ctaLabel: t('paywall.action.subscribe'),
       ctaTestID: 'paywall.monthly.cta',
       variant: 'primary',
       disabled: busy || !monthlyPrice,
@@ -159,11 +131,7 @@ export default function PaywallScreen() {
     plans.push({
       id: 'yearly',
       title: t('paywall.yearly.title'),
-      priceLine: yearlyPrice
-        ? yearlyTrialEligible
-          ? t('paywall.yearly.trialCta', { price: yearlyPrice })
-          : t('paywall.yearly.cta', { price: yearlyPrice })
-        : null,
+      priceLine: yearlyPrice ? t('paywall.yearly.cta', { price: yearlyPrice }) : null,
       ctaLabel: t('paywall.action.subscribe'),
       ctaTestID: 'paywall.yearly.cta',
       variant: 'secondary',
