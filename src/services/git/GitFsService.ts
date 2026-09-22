@@ -6,6 +6,7 @@ import { makeGitFs, type PromiseFsClient } from './gitFs';
 import { gitHttp } from './gitHttp';
 import { LfsService } from './lfs';
 import { isGitCorruptionError } from './corruptionErrors';
+import { withCloneKeepAwake } from './cloneKeepAwake';
 
 const CLONES_SUBDIR = 'GitNotes/';
 
@@ -357,6 +358,10 @@ export class GitFsService {
    * needed and burns disk + bandwidth.
    */
   static async clone(opts: CloneOpts): Promise<void> {
+    return withCloneKeepAwake(() => GitFsService.cloneWithoutKeepAwake(opts));
+  }
+
+  private static async cloneWithoutKeepAwake(opts: CloneOpts): Promise<void> {
     const info = parseRepoPath(opts.repoPath);
     if (!info) throw new Error(`Invalid repo path: ${opts.repoPath}`);
 

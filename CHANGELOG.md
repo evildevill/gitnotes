@@ -10,6 +10,12 @@ All notable fixes and feature changes to GitNotēs are documented here.
 
 ## 2026-09-21
 
+### fix(clone): keep screen awake during repository clones
+
+**What:** Long-running repository clones could be interrupted by the device screen locking during native clone, retry, or recovery work.
+
+**Fix:** Hold a tagged Expo keep-awake lock for every underlying clone operation and release it on success or failure.
+
 ### fix(explore): prevent duplicate commit pagination during initial load
 
 **What:** The commit history list could request its next page before the initial page finished loading, appending the first page twice and triggering duplicate SHA key warnings.
