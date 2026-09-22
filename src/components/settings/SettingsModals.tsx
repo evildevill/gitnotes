@@ -319,7 +319,12 @@ export function SettingsModals(props: SettingsModalsProps) {
             <Ionicons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 + insets.bottom }}>
+        <ScrollView
+          testID="settings-modals.repo-picker-scroll"
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 + insets.bottom }}
+        >
           <View className="flex-row items-center px-4 py-4 gap-2 border-b" style={{ borderColor: colors.border }}>
             <Input
               testID="settings-modals.input.manual-repo"

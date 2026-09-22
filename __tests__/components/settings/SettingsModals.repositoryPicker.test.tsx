@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import { SettingsModals } from '../../../src/components/settings/SettingsModals';
 import type { GitHostRepository, GitHostRepositoryResult, GitHostRepositoryUnavailable } from '../../../src/services/git/GitHost';
 import type { GitRepository } from '../../../src/services/GitService';
@@ -71,7 +71,6 @@ jest.mock('../../../src/components/SearchBar', () => {
 
 // Mock Modal
 jest.mock('../../../src/components/ui', () => {
-  const React = require('react');
   const { View } = require('react-native');
   return {
     Modal: ({ children, visible }: { children: React.ReactNode; visible: boolean }) =>
@@ -249,5 +248,17 @@ describe('RepoPickerList (via SettingsModals)', () => {
     );
 
     expect(getByText('settings.noRepositoriesFound')).toBeTruthy();
+  });
+
+  it('adjusts picker content for the keyboard when the repository list is empty', () => {
+    const { getByTestId } = render(
+      <SettingsModals
+        {...defaultProps}
+        discoverableRepos={[]}
+        isLoadingDiscoverableRepos={false}
+      />,
+    );
+
+    expect(getByTestId('settings-modals.repo-picker-scroll').props.automaticallyAdjustKeyboardInsets).toBe(true);
   });
 });
