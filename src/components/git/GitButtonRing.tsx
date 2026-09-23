@@ -14,7 +14,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Circle, Path, Svg } from 'react-native-svg';
 
-import { GIT_BUTTON_SIZE, HOLD_RING_OFFSET_Y } from './gitButtonGeometry';
+import { GIT_BUTTON_SIZE } from './gitButtonGeometry';
+
+const RING_SCALE_FACTOR = 0.12;
 
 export const GIT_RING_STROKE_WIDTH = 3.5;
 const GIT_RING_PADDING = 2;
@@ -42,9 +44,9 @@ interface GitButtonRingProps {
 }
 
 export function GitButtonRing({ progress, pressProgress, colors }: GitButtonRingProps) {
-  const liftStyle = useAnimatedStyle(() => ({
+  const scaleStyle = useAnimatedStyle(() => ({
     transform: [{
-      translateY: -HOLD_RING_OFFSET_Y * Math.max(progress.value, pressProgress?.value ?? 0),
+      scale: 1 + RING_SCALE_FACTOR * Math.max(progress.value, pressProgress?.value ?? 0),
     }],
   }));
 
@@ -55,7 +57,7 @@ export function GitButtonRing({ progress, pressProgress, colors }: GitButtonRing
       pointerEvents="none"
       style={[
         styles.svg,
-        liftStyle,
+        scaleStyle,
         {
           width: canvasSize,
           height: canvasSize,

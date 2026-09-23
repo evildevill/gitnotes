@@ -140,17 +140,17 @@ describe('GitButtonRing', () => {
     expect(SEGMENT_LENGTH).toBeLessThan(CIRCUMFERENCE / 3);
   });
 
-  it('lifts the ring above the finger during press and hold', () => {
+  it('scales the ring bigger during press and hold', () => {
     const holdProgress = useSharedValue(0.5);
     const pressProgress = useSharedValue(0);
 
     render(<GitButtonRing progress={holdProgress} pressProgress={pressProgress} colors={COLORS} />);
-    expect(mockAnimatedStyleResults[0]).toEqual({ transform: [{ translateY: -17 }] });
+    expect(mockAnimatedStyleResults[0]).toEqual({ transform: [{ scale: 1.06 }] });
 
     const pressedProgress = useSharedValue(0);
     const fullyPressed = useSharedValue(1);
     render(<GitButtonRing progress={pressedProgress} pressProgress={fullyPressed} colors={COLORS} />);
-    expect(mockAnimatedStyleResults[1]).toEqual({ transform: [{ translateY: -34 }] });
+    expect(mockAnimatedStyleResults[1]).toEqual({ transform: [{ scale: 1.12 }] });
   });
 
   it('renders three Path elements with valid arc path data and static strokeDasharray', () => {
