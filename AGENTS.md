@@ -34,8 +34,7 @@ git worktree add -b <type>/<scope>-<slug> .worktrees/<scope>-<slug> main
 
 ln -sfn "$(pwd)/node_modules" .worktrees/<scope>-<slug>/node_modules
 # node_modules is a 2.5 GB tree that is symlinked from main into the worktree
-# so Metro (which is rooted at main) and jest (which resolves from the worktree)
-# both work without a duplicate install.
+# so jest (which resolves from the worktree) works without a duplicate install.
 ```
 
 ### Rules
@@ -43,10 +42,9 @@ ln -sfn "$(pwd)/node_modules" .worktrees/<scope>-<slug>/node_modules
 - **Never leave code in main.** The main working tree must always be clean — no uncommitted changes, no staged files, no dangling work. If your worktree branch is merged, remove the worktree immediately. A dirty main blocks other agents and causes race conditions.
 - **One worktree per branch.** Never branch from another worktree's branch — always branch from `main` (or the upstream you're targeting). After `git fetch origin` in the main repo, base new worktrees on the updated `origin/main`.
 - **Coordinate before touching shared files.** Before editing `conflictStore.ts`, `LocalGitWriter.ts`, or any file another agent's `git status` shows as modified in the main working tree, check `git worktree list` and `git status` in the other worktrees. If another session has uncommitted work on the same files, wait or scope your change to a different file.
-- **Metro serves from main.** The Expo dev-client connects to Metro on the main worktree's port (8081). If you need your branch code to be served by Metro (e.g. for sim surface verification), copy the changed files from your worktree into main's working tree temporarily and revert after verification — Metro cannot serve from a worktree (`.worktrees/` is in `metro.config.js`'s `resolver.blockList`).
 - **Do not commit secrets / tokens / Metro debug output** — review `git diff` before committing. This applies whether you are in a worktree or not.
 - **Clean up** with `git worktree remove <path>` when a branch is merged and the worktree is no longer needed. Branches are cheap to recreate.
-- **Main must stay clean.** After merging (squash-merge or rebase+merge), immediately remove the source worktree and verify `git status` in main shows nothing uncommitted or unstaged. A polluted main breaks Metro, blocks other agents, and corrupts shared state.
+- **Main must stay clean.** After merging (squash-merge or rebase+merge), immediately remove the source worktree and verify `git status` in main shows nothing uncommitted or unstaged. A polluted main blocks other agents and corrupts shared state.
 
 ## Testing
 
@@ -77,6 +75,20 @@ yarn eslint . --ext .ts,.tsx  # Linting
   - `prefer-const` — change `let` to `const` when the variable is never reassigned
   - `no-useless-escape` — remove unnecessary escape characters in regex (`\[` → `[`, `\]` → `]`, `\-` → `-`, `\/` → `/`)
   - `no-empty` — never leave empty block statements; add a comment or remove the block
+
+## Second-Order Thinking Before Every Change
+
+**Never fix something without understanding its ripples.** Every change has downstream effects — on callers, consumers, stores, sync queues, other tabs, and future features. Fixes that solve one problem but create three others are net negatives.
+
+Before making any change — bug fix, refactor, "small tweak", or feature — ask:
+
+- **What does this code talk to?** Find upstream callers and downstream consumers. A change to a shared service or store affects every caller.
+- **What does this code touch?** If you're modifying a sync service, note editor, Git engine, or queue — trace the full call chain. These are high-coupling areas where a naive fix causes cascade failures.
+- **Am I treating the symptom or the cause?** If the bug keeps appearing, the "fix" may be masking a design problem. Dig deeper.
+- **What breaks when this scales?** A quick workaround that works for 10 items but fails at 10,000 is not a fix — it's debt.
+- **Is this change reversible?** If you can't easily undo this, think harder. Prefer incremental, reversible changes over big bangs.
+
+If you're uncertain about the impact of a change — **stop and ask**. It is always better to spend 5 minutes understanding the system than 5 hours fixing a cascade of regressions.
 
 ## Git Discipline
 
