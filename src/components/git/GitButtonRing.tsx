@@ -16,7 +16,7 @@ import { Circle, Path, Svg } from 'react-native-svg';
 
 import { GIT_BUTTON_SIZE } from './gitButtonGeometry';
 
-const RING_SCALE_FACTOR = 0.12;
+const RING_SCALE_FACTOR = 0.25;
 
 export const GIT_RING_STROKE_WIDTH = 3.5;
 const GIT_RING_PADDING = 2;
