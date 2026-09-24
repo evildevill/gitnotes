@@ -26,6 +26,7 @@ export const GIT_BUTTON_TOP_BOUND = 64;
 export const HOLD_RING_STROKE_WIDTH = 6;
 /** Gap between the button edge and the ring's center line. */
 export const HOLD_RING_RADIUS_OFFSET = 6;
+export const HOLD_RING_OFFSET_Y = GIT_BUTTON_SIZE / 2 + HOLD_RING_RADIUS_OFFSET;
 /** Diameter of the SVG canvas that hosts the ring (incl. stroke). */
 export const HOLD_RING_CANVAS_SIZE =
   GIT_BUTTON_SIZE + (HOLD_RING_RADIUS_OFFSET + HOLD_RING_STROKE_WIDTH / 2) * 2;

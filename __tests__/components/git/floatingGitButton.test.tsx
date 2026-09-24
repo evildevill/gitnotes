@@ -20,6 +20,7 @@ let mockPanGesture: {
   onStart: () => void;
   onFinalize: () => void;
 } | null = null;
+let mockRingProps: Record<string, unknown> | null = null;
 
 jest.mock('@/components/git/useFloatingGitButtonPanGesture', () => ({
   useFloatingGitButtonPanGesture: (
@@ -63,7 +64,8 @@ jest.mock('@/components/floatingButtonLayout', () => ({
 jest.mock('@/components/git/GitButtonRing', () => {
   const View = require('react-native').View;
   return {
-    GitButtonRing: function MockGitButtonRing() {
+    GitButtonRing: function MockGitButtonRing(props: Record<string, unknown>) {
+      mockRingProps = props;
       return <View testID="gitbutton.ring" />;
     },
   };
@@ -77,6 +79,7 @@ jest.mock('@/contexts/ThemeContext', () => ({
 describe('FloatingGitButton — integration', () => {
   beforeEach(() => {
     __resetTime();
+    mockRingProps = null;
   });
 
   function renderButton(overrides: {
@@ -110,6 +113,25 @@ describe('FloatingGitButton — integration', () => {
       },
     });
     expect(getByTestId('gitbutton.badge')).toBeTruthy();
+  });
+
+  it('gives the hold ring press progress so it can lift clear of the finger', () => {
+    renderButton({
+      aggregatedState: {
+        perRepo: new Map(),
+        totalUncommitted: 1,
+        totalStaged: 0,
+        totalAhead: 0,
+        anyConflicts: false,
+        anyBusy: false,
+        latestChangedRepoId: null,
+        mode: 'clean',
+        refresh: async () => undefined,
+      },
+    });
+
+    expect(mockRingProps?.progress).toBeTruthy();
+    expect(mockRingProps?.pressProgress).toBeTruthy();
   });
 
   // onQuickTap is called by FloatingGitButton's handleTap (onPress prop), not by

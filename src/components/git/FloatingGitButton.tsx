@@ -20,6 +20,8 @@ import {
 import { useFloatingButtonCollision } from '../floatingButtonLayout';
 import { GitButtonRing } from './GitButtonRing';
 
+const HOLD_SCALE_FACTOR = 0.12;
+
 interface FloatingGitButtonProps {
   aggregatedState?: AggregatedGitState;
   /** Informational tap — jumps to the Explore section with pending work. */
@@ -152,7 +154,12 @@ export default function FloatingGitButton({
     transform: [
       { translateX: translateX.value },
       { translateY: translateY.value },
-      { scale: 1 - PRESS_SCALE_FACTOR * pressProgress.value },
+      {
+        scale:
+          1
+          - PRESS_SCALE_FACTOR * pressProgress.value
+          + HOLD_SCALE_FACTOR * holdProgress.value,
+      },
     ],
   }));
 
@@ -174,6 +181,7 @@ export default function FloatingGitButton({
           />
           <GitButtonRing
             progress={holdProgress}
+            pressProgress={pressProgress}
             colors={[colors.success, '#f59e0b', colors.primary]}
           />
           <Pressable

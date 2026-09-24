@@ -52,6 +52,7 @@ let mockUseAnimatedPropsResults: object[] = [];
 let mockAnimatedPathProps: Array<{ d: string; strokeDasharray: [number, number]; animatedProps: object }> = [];
 let mockCircleProps: Array<{ cx: number; cy: number; r: number; fill: string }> = [];
 let mockRenderSequence: string[] = [];
+let mockAnimatedStyleResults: object[] = [];
 
 jest.mock('react-native-reanimated', () => {
   const React = require('react');
@@ -66,13 +67,15 @@ jest.mock('react-native-reanimated', () => {
     useSharedValue: (v: number) => ({ value: v }),
     Animated: {
       createAnimatedComponent: (_Comp: unknown) => {
-        const Wrapped = (props: { d?: string; strokeDasharray?: [number, number]; animatedProps?: object; [key: string]: unknown }) => {
+        const Wrapped = (props: { d?: string; strokeDasharray?: [number, number]; animatedProps?: object; children?: React.ReactNode; [key: string]: unknown }) => {
           if (props.d !== undefined && props.strokeDasharray !== undefined) {
             mockAnimatedPathProps.push({
               d: props.d,
               strokeDasharray: props.strokeDasharray,
               animatedProps: props.animatedProps ?? {},
             });
+          } else {
+            return React.createElement(View, props, props.children);
           }
           mockRenderSequence.push('arc');
           return React.createElement(View, { 'data-testid': `animated-path` });
@@ -83,13 +86,15 @@ jest.mock('react-native-reanimated', () => {
     },
     default: {
       createAnimatedComponent: (_Comp: unknown) => {
-        const Wrapped = (props: { d?: string; strokeDasharray?: [number, number]; animatedProps?: object; [key: string]: unknown }) => {
+        const Wrapped = (props: { d?: string; strokeDasharray?: [number, number]; animatedProps?: object; children?: React.ReactNode; [key: string]: unknown }) => {
           if (props.d !== undefined && props.strokeDasharray !== undefined) {
             mockAnimatedPathProps.push({
               d: props.d,
               strokeDasharray: props.strokeDasharray,
               animatedProps: props.animatedProps ?? {},
             });
+          } else {
+            return React.createElement(View, props, props.children);
           }
           mockRenderSequence.push('arc');
           return React.createElement(View, { 'data-testid': `animated-path` });
@@ -97,6 +102,11 @@ jest.mock('react-native-reanimated', () => {
         Wrapped.displayName = 'AnimatedPath';
         return Wrapped;
       },
+    },
+    useAnimatedStyle: (worklet: () => object) => {
+      const result = worklet();
+      mockAnimatedStyleResults.push(result);
+      return result;
     },
   };
 });
@@ -107,6 +117,7 @@ describe('GitButtonRing', () => {
     mockAnimatedPathProps = [];
     mockCircleProps = [];
     mockRenderSequence = [];
+    mockAnimatedStyleResults = [];
   });
 
   it('renders without crashing', () => {
@@ -127,6 +138,19 @@ describe('GitButtonRing', () => {
     expect(SEGMENT_LENGTH).toBeCloseTo(COMPUTED_SEGMENT_LENGTH, 5);
     expect(SEGMENT_LENGTH).toBeGreaterThan(0);
     expect(SEGMENT_LENGTH).toBeLessThan(CIRCUMFERENCE / 3);
+  });
+
+  it('scales the ring bigger during press and hold', () => {
+    const holdProgress = useSharedValue(0.5);
+    const pressProgress = useSharedValue(0);
+
+    render(<GitButtonRing progress={holdProgress} pressProgress={pressProgress} colors={COLORS} />);
+    expect(mockAnimatedStyleResults[0]).toEqual({ transform: [{ scale: 1.125 }] });
+
+    const pressedProgress = useSharedValue(0);
+    const fullyPressed = useSharedValue(1);
+    render(<GitButtonRing progress={pressedProgress} pressProgress={fullyPressed} colors={COLORS} />);
+    expect(mockAnimatedStyleResults[1]).toEqual({ transform: [{ scale: 1.25 }] });
   });
 
   it('renders three Path elements with valid arc path data and static strokeDasharray', () => {

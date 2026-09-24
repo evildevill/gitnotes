@@ -9,11 +9,14 @@
 import { StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedProps,
+  useAnimatedStyle,
   type SharedValue,
 } from 'react-native-reanimated';
 import { Circle, Path, Svg } from 'react-native-svg';
 
 import { GIT_BUTTON_SIZE } from './gitButtonGeometry';
+
+const RING_SCALE_FACTOR = 0.25;
 
 export const GIT_RING_STROKE_WIDTH = 3.5;
 const GIT_RING_PADDING = 2;
@@ -21,6 +24,7 @@ const GIT_RING_RADIUS_OFFSET = 6;
 export const GIT_RING_RADIUS = GIT_BUTTON_SIZE / 2 + GIT_RING_RADIUS_OFFSET;
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
 const cx = GIT_RING_RADIUS + GIT_RING_STROKE_WIDTH + GIT_RING_PADDING;
 const cy = cx;
@@ -35,17 +39,25 @@ const SCORE_DOT_RADIUS = 0.8;
 
 interface GitButtonRingProps {
   readonly progress: SharedValue<number>;
+  readonly pressProgress?: SharedValue<number>;
   readonly colors: [string, string, string];
 }
 
-export function GitButtonRing({ progress, colors }: GitButtonRingProps) {
+export function GitButtonRing({ progress, pressProgress, colors }: GitButtonRingProps) {
+  const scaleStyle = useAnimatedStyle(() => ({
+    transform: [{
+      scale: 1 + RING_SCALE_FACTOR * Math.max(progress.value, pressProgress?.value ?? 0),
+    }],
+  }));
+
   return (
-    <Svg
+    <AnimatedSvg
       width={canvasSize}
       height={canvasSize}
       pointerEvents="none"
       style={[
         styles.svg,
+        scaleStyle,
         {
           width: canvasSize,
           height: canvasSize,
@@ -78,7 +90,7 @@ export function GitButtonRing({ progress, colors }: GitButtonRingProps) {
           color={colors[i]}
         />
       ))}
-    </Svg>
+    </AnimatedSvg>
   );
 }
 
