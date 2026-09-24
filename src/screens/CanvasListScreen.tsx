@@ -28,7 +28,7 @@ import { ActiveFilterStrip } from '../components/ActiveFilterStrip';
 import { useEntityFilter } from '../hooks/useEntityFilter';
 import { useTranslation } from 'react-i18next';
 import { useProGate } from '../hooks/useProGate';
-import CanvasCard from '../components/CanvasCard';
+import CanvasListCard from '../components/list/CanvasListCard';
 import { SwipeableListItem } from '../components/list/SwipeableListItem';
 import { BulkActionBar } from '../components/list/BulkActionBar';
 import { HapticService } from '../utils/haptics';
@@ -62,7 +62,7 @@ function CanvasCardContainer({ canvas, onOpen, onDelete }: CanvasCardContainerPr
   }, [canvas, onDelete]);
 
   return (
-    <CanvasCard
+    <CanvasListCard
       canvas={canvas}
       onPress={handlePress}
       onLongPress={handleLongPress}
